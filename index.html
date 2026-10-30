@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Event 6 Attendance</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 20px; max-width: 500px; margin: auto; background: #f4f4f9; }
+    h2 { text-align: center; color: #333; }
+    #formContainer { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    label { font-weight: bold; margin-top: 10px; display: block; font-size: 14px; }
+    input, select { width: 100%; padding: 10px; margin: 8px 0 16px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
+    video { width: 100%; border-radius: 8px; background: #000; margin-bottom: 10px; transition: opacity 0.15s ease-in-out; }
+    button { width: 100%; padding: 12px; background: #0056b3; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; }
+    button:disabled { background: #999; cursor: not-allowed; }
+    .camera-container { text-align: center; margin-bottom: 20px; }
+    #lockedScreen { display: none; text-align: center; background: white; padding: 40px 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-top: 50px; }
+    #lockedScreen h1 { color: #28a745; font-size: 24px; margin-bottom: 10px; }
+    #lockedScreen p { color: #555; font-size: 16px; line-height: 1.5; }
+  </style>
+</head>
+<body>
+
+  <h2>Event 6 Attendance</h2>
+  
+  <div id="lockedScreen">
+    <h1>✅ Attendance Recorded</h1>
+    <p>Your attendance for Event 6 has been logged.</p>
+    <p><strong>You may now close this tab.</strong></p>
+  </div>
+
+  <div id="formContainer">
+    <form id="attendanceForm">
+      <label>USN</label>
+      <input type="text" name="usn" required placeholder="e.g. 4NI25EC000">
+
+      <label>Name</label>
+      <input type="text" name="name" required>
+
+      <label>Email ID</label>
+      <input type="email" name="email" required>
+
+      <label>Semester</label>
+      <select name="sem" required>
+        <option value="" disabled selected>Select Semester</option>
+        <option value="1">1st</option>
+        <option value="2">2nd</option>
+        <option value="3">3rd</option>
+        <option value="4">4th</option>
+        <option value="5">5th</option>
+        <option value="6">6th</option>
+        <option value="7">7th</option>
+        <option value="8">8th</option>
+      </select>
+
+      <label>Branch</label>
+      <input type="text" name="branch" required>
+
+      <div class="camera-container">
+        <label>Please ensure your face is visible</label>
+        <video id="camera" autoplay playsinline muted></video>
+      </div>
+
+      <button type="submit" id="submitBtn">Take Photo & Submit</button>
+    </form>
+  </div>
+
+  <script>
+    // Unique device lock exclusively for Event 6
+    if (localStorage.getItem('event6_Marked') === 'true') {
+      document.getElementById('formContainer').style.display = 'none';
+      document.getElementById('lockedScreen').style.display = 'block';
+    } else {
+      const video = document.getElementById('camera');
+      const form = document.getElementById('attendanceForm');
+      const submitBtn = document.getElementById('submitBtn');
+      
+      // Your Event 6 Web App URL
+      const scriptURL = 'https://script.google.com/macros/s/AKfycbyxvYkSdDZurz-_A4yniRlU7xT284xXbxh3-4jQ6dR-Hibrbe6F_i07wtMRhU3iETEp/exec';
+
+      let localStream;
+
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false })
+        .then(stream => { 
+          localStream = stream;
+          video.srcObject = stream; 
+          video.play().catch(e => console.error("Camera playback failed:", e));
+        })
+        .catch(err => { 
+          alert("Camera access is required to mark attendance."); 
+          submitBtn.disabled = true;
+        });
+
+      form.addEventListener('submit', e => {
+        e.preventDefault();
+        
+        video.style.opacity = 0;
+        setTimeout(() => video.style.opacity = 1, 150);
+        
+        submitBtn.innerText = "Submitting securely...";
+        submitBtn.disabled = true;
+
+        fetch(scriptURL, { method: 'POST', body: new FormData(form) })
+          .then(response => {
+            // Activates the lock for Event 6
+            localStorage.setItem('event6_Marked', 'true');
+            if (localStream) {
+              localStream.getTracks().forEach(track => track.stop());
+            }
+            document.getElementById('formContainer').style.display = 'none';
+            document.getElementById('lockedScreen').style.display = 'block';
+          })
+          .catch(error => {
+            console.error('Error!', error.message);
+            alert("Submission failed. Please check your internet connection.");
+            submitBtn.innerText = "Take Photo & Submit";
+            submitBtn.disabled = false;
+          });
+      });
+    }
+  </script>
+</body>
+</html>
